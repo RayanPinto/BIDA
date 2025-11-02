@@ -1,0 +1,48 @@
+﻿import numpy as np
+import pandas as pd
+from mlxtend.frequent_patterns import apriori, association_rules
+
+
+import pandas as pd
+# Load the new dataset
+df = pd.read_csv("Market_Basket_Optimisation.csv")
+print("First 5 rows of dataset:")
+print(df.head())
+
+
+transactions = []
+for i in range(0, len(df)):
+    # Split each row into items and filter out 'nan'
+    transactions.append([str(df.values[i,j]) for j in range(0, df.shape[1]) if str(df.values[i,j]) != 'nan'])
+
+
+from mlxtend.preprocessing import TransactionEncoder
+te = TransactionEncoder()
+te_array = te.fit(transactions).transform(transactions)
+df_encoded = pd.DataFrame(te_array, columns=te.columns_)
+
+
+from mlxtend.frequent_patterns import apriori
+# Adjusted min_support for the new dataset if needed
+frequent_itemsets = apriori(df_encoded, min_support=0.01, use_colnames=True)
+print("Total Frequent Itemsets:", frequent_itemsets.shape[0])
+
+
+from mlxtend.frequent_patterns import association_rules
+# Adjusted min_threshold for the new dataset if needed
+rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.1)
+rules = rules[rules['antecedents'].apply(lambda x: len(x) >= 1) & rules['consequents'].apply(lambda x: len(x) >= 1)]
+print("Association Rules:", rules.shape[0])
+rules[['antecedents', 'consequents', 'support', 'confidence', 'lift']].head(5)
+
+
+import matplotlib.pyplot as plt
+# For this dataset, we first need to flatten the list of transactions to count item frequencies
+all_items = [item for sublist in transactions for item in sublist]
+top_items = pd.Series(all_items).value_counts().head(10)
+
+
+top_items.plot(kind='bar', title='Top 10 Most Purchased Items')
+plt.xlabel("Item")
+plt.ylabel("Count")
+plt.show()
